@@ -1,3 +1,9 @@
+# API Keys and Secrets
+.env
+*.env
+config.ini
+*_key.txt
+
 # Data files (too large for GitHub)
 data/*.csv
 data/*.pkl
@@ -20,7 +26,6 @@ __pycache__/
 env/
 venv/
 ENV/
-.env
 
 # Jupyter
 .ipynb_checkpoints/
@@ -36,11 +41,6 @@ ENV/
 .DS_Store
 Thumbs.db
 .directory
-
-# Secrets
-config.ini
-*_key.txt
-*.env
 
 # Large files
 *.h5
