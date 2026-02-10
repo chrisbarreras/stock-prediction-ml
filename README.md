@@ -4,41 +4,46 @@ Predicting quarterly S&P 500 stock returns using financial fundamentals and mach
 
 ## Overview
 
-This project builds an XGBoost regression model to predict next-quarter stock returns based on company financial metrics including revenue growth, profit margins, and balance sheet ratios. The model is trained on 10 major S&P 500 companies over a 2-year period (2016-2018).
+This project builds an XGBoost regression model to predict next-quarter stock returns based on 26 financial features derived from real SEC EDGAR filings. The model is trained on 32 S&P 500 companies using quarterly data from 2013-2018.
 
 ## Results
 
 | Metric | Value |
 |--------|-------|
-| Test RMSE | See notebook 04 |
-| Test R2 | See notebook 04 |
-| Direction Accuracy | See notebook 04 |
+| Test RMSE | 0.1316 |
+| Test R2 | 0.1839 |
+| CV RMSE | 0.1296 (+/- 0.0077) |
+| Direction Accuracy | 79.5% |
 
 ## Features
 
-The model uses 8 financial features:
+The model uses 26 financial features across 6 categories:
 
-- **Revenue** - Total quarterly revenue
-- **Revenue Growth** - Quarter-over-quarter revenue change
-- **Profit Margin** - Net income / revenue
-- **Gross Margin** - Gross profit / revenue
-- **Net Income** - Bottom line earnings
-- **Total Assets** - Company size indicator
-- **Debt-to-Assets** - Leverage ratio
-- **Quarter Price** - Stock price at quarter end
+**Profitability** - revenue, revenue_growth, profit_margin, operating_margin, net_income, net_income_growth, operating_income_growth
+
+**Per-Share** - eps_diluted, eps_growth
+
+**Expense Ratios** - rd_ratio, sga_ratio, tax_rate
+
+**Balance Sheet** - total_assets, debt_to_assets, debt_to_equity, current_ratio, cash_ratio, equity_ratio
+
+**Returns & Efficiency** - roa, roe, asset_turnover, interest_coverage
+
+**Cash Flow & Valuation** - market_cap, pe_ratio, price_to_book, quarter_price
 
 ## Project Structure
 
 ```
 stock-prediction-ml/
 ├── notebooks/
-│   ├── 01_data_collection.ipynb       # Load Kaggle price data + synthetic financials
-│   ├── 02_feature_engineering.ipynb    # Transform raw data into ML features
+│   ├── 01_data_collection.ipynb       # Load Kaggle price data
+│   ├── 01b_real_data_collection.ipynb  # Parse SEC EDGAR financial data
+│   ├── 02_feature_engineering.ipynb    # Transform raw data into 26 ML features
 │   ├── 03_model_training.ipynb        # Train XGBoost model (Google Colab)
 │   └── 04_analysis.ipynb              # Evaluate results and visualizations
 ├── data/
-│   ├── raw/kaggle/                    # S&P 500 historical price data
-│   └── processed_dataset.csv          # Final ML-ready dataset (60 samples)
+│   ├── raw/kaggle/                    # S&P 500 price data + SEC EDGAR filings
+│   └── processed_dataset.csv          # Final ML-ready dataset (192 samples)
 ├── models/
 │   └── model_results.pkl              # Trained model and metrics
 ├── results/
@@ -54,27 +59,27 @@ stock-prediction-ml/
 ## Data Sources
 
 - **Stock Prices**: [Kaggle S&P 500 Dataset](https://www.kaggle.com/datasets/camnugent/sandp500) - Real historical daily prices (2013-2018)
-- **Financial Statements**: Synthetically generated quarterly data with realistic patterns
+- **Financial Statements**: [SEC EDGAR](https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip) - Real quarterly filings (10-Q) parsed from XBRL
 
 ### Companies Analyzed
 
-AAPL, MSFT, GOOGL, AMZN, FB, INTC, NVDA, V, JPM, UNH
+32 S&P 500 companies across sectors including technology, finance, healthcare, consumer, and industrials.
 
 ## Methodology
 
-1. **Data Collection** - Loaded 5 years of daily stock prices from Kaggle for 10 S&P 500 companies. Generated synthetic quarterly financial statements.
+1. **Data Collection** - Loaded 5 years of daily stock prices from Kaggle. Parsed real quarterly financial statements from SEC EDGAR bulk XBRL data, extracting income statement, balance sheet, and cash flow metrics with tag fallback logic.
 
-2. **Feature Engineering** - Calculated financial ratios and growth metrics for each company-quarter. Matched stock prices to quarter-end dates and computed 90-day forward returns as the prediction target.
+2. **Feature Engineering** - Computed 26 derived features including profitability ratios, growth metrics, leverage ratios, efficiency metrics, and valuation multiples. Matched stock prices to quarter-end dates and computed 90-day forward returns as the prediction target.
 
-3. **Model Training** - Trained XGBoost regressor with max_depth=3, 100 estimators, and learning rate of 0.1. Used 80/20 train/test split.
+3. **Model Training** - Trained XGBoost regressor with max_depth=4, 200 estimators, and learning rate of 0.05. Used 80/20 train/test split with 5-fold cross-validation.
 
-4. **Analysis** - Evaluated model using RMSE, R2, MAE, and directional accuracy. Analyzed feature importance and prediction patterns.
+4. **Analysis** - Evaluated model using RMSE, R2, MAE, cross-validation RMSE, and directional accuracy. Analyzed feature importance and prediction patterns.
 
 ## Setup
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/stock-prediction-ml.git
+git clone https://github.com/chrisbarreras/stock-prediction-ml.git
 cd stock-prediction-ml
 
 # Create virtual environment
@@ -85,22 +90,20 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-Run notebooks 01, 02, and 04 locally. Notebook 03 was designed for Google Colab with GPU support.
+Run notebooks 01, 01b, 02, and 04 locally. Notebook 03 was designed for Google Colab with GPU support.
 
 ## Limitations
 
-- Small dataset (60 samples from 10 companies)
-- Synthetic financial data (not real SEC filings)
-- Limited to 2016-2018 period due to data overlap
-- Simple feature set without technical indicators
+- Limited to 2013-2018 period due to Kaggle price data coverage
+- 192 samples from 32 companies (companies with incomplete SEC filings excluded)
+- No technical indicators (purely fundamental analysis)
 
 ## Potential Improvements
 
-- Use real financial statement data from SEC EDGAR API
 - Add technical indicators (RSI, MACD, moving averages)
-- Include more companies and longer time periods
+- Extend price data beyond 2013-2018 for more samples
 - Experiment with LSTM or transformer models for time series
-- Add cross-validation for more robust evaluation
+- Add sector-relative features for cross-company comparison
 
 ## Tech Stack
 
