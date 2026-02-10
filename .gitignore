@@ -8,6 +8,7 @@ config.ini
 data/*.csv
 data/*.pkl
 data/*.json
+data/raw/kaggle/sec_edgar/
 *.csv
 *.pkl
 
