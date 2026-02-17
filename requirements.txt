@@ -3,6 +3,9 @@ pandas
 numpy
 requests
 python-dotenv
+yfinance
+fredapi
+lxml
 
 # Machine Learning
 scikit-learn
