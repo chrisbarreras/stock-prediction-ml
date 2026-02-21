@@ -14,6 +14,11 @@ class TestDatasetValidation:
         for col in required:
             assert col in sample_processed_dataset.columns, f"Missing column: {col}"
 
+    def test_has_excess_return_columns(self, sample_processed_dataset):
+        """Dataset should have benchmark and excess return columns."""
+        assert 'benchmark_return' in sample_processed_dataset.columns
+        assert 'target_excess_return' in sample_processed_dataset.columns
+
     def test_no_nan_in_target(self, sample_processed_dataset):
         assert not sample_processed_dataset['target_return'].isna().any(), \
             "target_return contains NaN values"

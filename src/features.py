@@ -70,6 +70,45 @@ def calculate_return(current_price, future_price):
     return (future_price - current_price) / current_price
 
 
+def calculate_excess_return(stock_return, benchmark_return):
+    """Calculate excess return (stock return minus benchmark).
+
+    Args:
+        stock_return: Individual stock return for the period.
+        benchmark_return: Benchmark (e.g. S&P 500) return for same period.
+
+    Returns:
+        Excess return as float, or np.nan if inputs invalid.
+    """
+    if pd.isna(stock_return) or pd.isna(benchmark_return):
+        return np.nan
+    return stock_return - benchmark_return
+
+
+def select_features(X, corr_threshold=0.95):
+    """Remove highly correlated features from a DataFrame.
+
+    Iterates through the correlation matrix and drops one feature
+    from each pair with correlation above the threshold.
+
+    Args:
+        X: DataFrame of features.
+        corr_threshold: Maximum allowed absolute correlation (default 0.95).
+
+    Returns:
+        Tuple of (filtered DataFrame, list of dropped column names).
+    """
+    corr_matrix = X.corr().abs()
+    upper = corr_matrix.where(
+        np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
+    )
+    to_drop = []
+    for col in upper.columns:
+        if any(upper[col] > corr_threshold):
+            to_drop.append(col)
+    return X.drop(columns=to_drop), to_drop
+
+
 def validate_dataset(dataset):
     """Validate a processed dataset meets quality requirements.
 

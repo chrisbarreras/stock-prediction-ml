@@ -3,7 +3,10 @@
 import numpy as np
 import pandas as pd
 
-from src.features import safe_loc, safe_divide, safe_growth, calculate_return
+from src.features import (
+    safe_loc, safe_divide, safe_growth, calculate_return,
+    calculate_excess_return, select_features,
+)
 
 
 class TestSafeLoc:
@@ -119,6 +122,76 @@ class TestCalculateReturn:
 
     def test_no_change(self):
         assert calculate_return(100, 100) == 0.0
+
+
+class TestCalculateExcessReturn:
+    """Tests for calculate_excess_return function."""
+
+    def test_positive_excess(self):
+        assert abs(calculate_excess_return(0.15, 0.05) - 0.10) < 1e-10
+
+    def test_negative_excess(self):
+        assert calculate_excess_return(0.02, 0.08) == -0.06
+
+    def test_zero_excess(self):
+        assert calculate_excess_return(0.05, 0.05) == 0.0
+
+    def test_nan_stock_return(self):
+        assert np.isnan(calculate_excess_return(np.nan, 0.05))
+
+    def test_nan_benchmark(self):
+        assert np.isnan(calculate_excess_return(0.10, np.nan))
+
+    def test_both_nan(self):
+        assert np.isnan(calculate_excess_return(np.nan, np.nan))
+
+    def test_negative_both(self):
+        result = calculate_excess_return(-0.10, -0.05)
+        assert abs(result - (-0.05)) < 1e-10
+
+
+class TestSelectFeatures:
+    """Tests for select_features function."""
+
+    def test_drops_highly_correlated(self):
+        np.random.seed(42)
+        x1 = np.random.normal(0, 1, 100)
+        x2 = x1 + np.random.normal(0, 0.01, 100)  # nearly identical
+        x3 = np.random.normal(0, 1, 100)  # independent
+        df = pd.DataFrame({'x1': x1, 'x2': x2, 'x3': x3})
+        result, dropped = select_features(df, corr_threshold=0.95)
+        assert len(dropped) == 1
+        assert 'x3' in result.columns
+        assert result.shape[1] == 2
+
+    def test_keeps_uncorrelated(self):
+        np.random.seed(42)
+        df = pd.DataFrame({
+            'a': np.random.normal(0, 1, 100),
+            'b': np.random.normal(0, 1, 100),
+            'c': np.random.normal(0, 1, 100),
+        })
+        result, dropped = select_features(df, corr_threshold=0.95)
+        assert len(dropped) == 0
+        assert result.shape[1] == 3
+
+    def test_returns_dataframe(self):
+        df = pd.DataFrame({
+            'a': [1, 2, 3],
+            'b': [4, 5, 6],
+        })
+        result, dropped = select_features(df)
+        assert isinstance(result, pd.DataFrame)
+        assert isinstance(dropped, list)
+
+    def test_custom_threshold(self):
+        np.random.seed(42)
+        x1 = np.random.normal(0, 1, 100)
+        x2 = x1 + np.random.normal(0, 0.3, 100)  # corr ~0.95
+        df = pd.DataFrame({'x1': x1, 'x2': x2})
+        # With strict threshold, should drop
+        _, dropped_strict = select_features(df, corr_threshold=0.8)
+        assert len(dropped_strict) >= 1
 
 
 class TestFeatureCreation:

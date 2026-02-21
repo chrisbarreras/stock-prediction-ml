@@ -138,5 +138,7 @@ def sample_processed_dataset():
         'roe': np.random.uniform(0.05, 0.3, n),
         'debt_to_assets': np.random.uniform(0.1, 0.6, n),
         'current_ratio': np.random.uniform(0.8, 3.0, n),
+        'benchmark_return': np.random.uniform(-0.1, 0.15, n),
+        'target_excess_return': np.random.uniform(-0.3, 0.4, n),
         'target_return': np.random.uniform(-0.3, 0.5, n),
     })
