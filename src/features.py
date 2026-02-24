@@ -85,6 +85,109 @@ def calculate_excess_return(stock_return, benchmark_return):
     return stock_return - benchmark_return
 
 
+def calculate_rsi(prices, period=14):
+    """Calculate Relative Strength Index.
+
+    Args:
+        prices: pd.Series of closing prices (needs at least period+1 values).
+        period: Lookback period (default 14).
+
+    Returns:
+        RSI value (0-100) or np.nan if insufficient data.
+    """
+    if not isinstance(prices, pd.Series) or len(prices) < period + 1:
+        return np.nan
+    delta = prices.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.iloc[-period:].mean()
+    avg_loss = loss.iloc[-period:].mean()
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return 100.0 - (100.0 / (1.0 + rs))
+
+
+def calculate_macd_histogram(prices, fast=12, slow=26, signal=9):
+    """Calculate MACD histogram value.
+
+    Args:
+        prices: pd.Series of closing prices (needs at least slow+signal values).
+        fast: Fast EMA period (default 12).
+        slow: Slow EMA period (default 26).
+        signal: Signal line EMA period (default 9).
+
+    Returns:
+        MACD histogram value as float, or np.nan if insufficient data.
+    """
+    if not isinstance(prices, pd.Series) or len(prices) < slow + signal:
+        return np.nan
+    ema_fast = prices.ewm(span=fast, adjust=False).mean()
+    ema_slow = prices.ewm(span=slow, adjust=False).mean()
+    macd_line = ema_fast - ema_slow
+    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    histogram = macd_line - signal_line
+    return float(histogram.iloc[-1])
+
+
+def calculate_bollinger_width(prices, period=20, num_std=2):
+    """Calculate Bollinger Band width.
+
+    Args:
+        prices: pd.Series of closing prices (needs at least period values).
+        period: Moving average period (default 20).
+        num_std: Number of standard deviations (default 2).
+
+    Returns:
+        Band width as float (upper - lower) / middle, or np.nan.
+    """
+    if not isinstance(prices, pd.Series) or len(prices) < period:
+        return np.nan
+    window = prices.iloc[-period:]
+    middle = window.mean()
+    if middle == 0:
+        return np.nan
+    std = window.std()
+    upper = middle + num_std * std
+    lower = middle - num_std * std
+    return float((upper - lower) / middle)
+
+
+def calculate_volume_trend(volumes, period=20):
+    """Calculate volume trend as current volume / period-day average.
+
+    Args:
+        volumes: pd.Series of volume data (needs at least period values).
+        period: Lookback period (default 20).
+
+    Returns:
+        Volume ratio as float, or np.nan if insufficient data.
+    """
+    if not isinstance(volumes, pd.Series) or len(volumes) < period:
+        return np.nan
+    avg_volume = volumes.iloc[-period:].mean()
+    if avg_volume == 0:
+        return np.nan
+    return float(volumes.iloc[-1] / avg_volume)
+
+
+def calculate_price_to_52wk_high(prices):
+    """Calculate current price relative to 52-week high.
+
+    Args:
+        prices: pd.Series of closing prices (needs at least 252 trading days).
+
+    Returns:
+        Ratio (0 to 1) as float, or np.nan if insufficient data.
+    """
+    if not isinstance(prices, pd.Series) or len(prices) < 252:
+        return np.nan
+    high_52wk = prices.iloc[-252:].max()
+    if high_52wk == 0:
+        return np.nan
+    return float(prices.iloc[-1] / high_52wk)
+
+
 def select_features(X, corr_threshold=0.95):
     """Remove highly correlated features from a DataFrame.
 

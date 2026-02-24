@@ -6,6 +6,8 @@ import pandas as pd
 from src.features import (
     safe_loc, safe_divide, safe_growth, calculate_return,
     calculate_excess_return, select_features,
+    calculate_rsi, calculate_macd_histogram, calculate_bollinger_width,
+    calculate_volume_trend, calculate_price_to_52wk_high,
 )
 
 
@@ -192,6 +194,125 @@ class TestSelectFeatures:
         # With strict threshold, should drop
         _, dropped_strict = select_features(df, corr_threshold=0.8)
         assert len(dropped_strict) >= 1
+
+
+class TestCalculateRSI:
+    """Tests for calculate_rsi function."""
+
+    def test_rsi_range(self):
+        np.random.seed(42)
+        prices = pd.Series(np.cumsum(np.random.normal(0, 1, 50)) + 100)
+        result = calculate_rsi(prices)
+        assert 0 <= result <= 100
+
+    def test_rsi_overbought(self):
+        prices = pd.Series(range(100, 130))  # monotonically increasing
+        result = calculate_rsi(prices)
+        assert result > 70
+
+    def test_rsi_oversold(self):
+        prices = pd.Series(range(130, 100, -1))  # monotonically decreasing
+        result = calculate_rsi(prices)
+        assert result < 30
+
+    def test_rsi_insufficient_data(self):
+        prices = pd.Series([100, 101, 102])
+        assert np.isnan(calculate_rsi(prices))
+
+    def test_rsi_not_series(self):
+        assert np.isnan(calculate_rsi([100, 101, 102]))
+
+
+class TestCalculateMACDHistogram:
+    """Tests for calculate_macd_histogram function."""
+
+    def test_macd_returns_float(self):
+        np.random.seed(42)
+        prices = pd.Series(np.cumsum(np.random.normal(0, 1, 50)) + 100)
+        result = calculate_macd_histogram(prices)
+        assert isinstance(result, float)
+
+    def test_macd_insufficient_data(self):
+        prices = pd.Series([100, 101, 102])
+        assert np.isnan(calculate_macd_histogram(prices))
+
+    def test_macd_uptrend_positive(self):
+        prices = pd.Series(range(100, 145))  # strong uptrend
+        result = calculate_macd_histogram(prices)
+        assert result > 0
+
+    def test_macd_not_series(self):
+        assert np.isnan(calculate_macd_histogram([100, 101]))
+
+
+class TestCalculateBollingerWidth:
+    """Tests for calculate_bollinger_width function."""
+
+    def test_bollinger_positive(self):
+        np.random.seed(42)
+        prices = pd.Series(np.random.normal(100, 5, 30))
+        result = calculate_bollinger_width(prices)
+        assert result > 0
+
+    def test_bollinger_insufficient_data(self):
+        prices = pd.Series([100, 101])
+        assert np.isnan(calculate_bollinger_width(prices))
+
+    def test_bollinger_low_volatility(self):
+        prices = pd.Series([100.0] * 20 + [100.01])
+        result = calculate_bollinger_width(prices)
+        assert result < 0.01  # very tight bands
+
+    def test_bollinger_not_series(self):
+        assert np.isnan(calculate_bollinger_width([100, 101]))
+
+
+class TestCalculateVolumeTrend:
+    """Tests for calculate_volume_trend function."""
+
+    def test_volume_trend_ratio(self):
+        volumes = pd.Series([1_000_000] * 20)
+        result = calculate_volume_trend(volumes)
+        assert abs(result - 1.0) < 1e-10
+
+    def test_volume_trend_high(self):
+        volumes = pd.Series([1_000_000] * 19 + [3_000_000])
+        result = calculate_volume_trend(volumes)
+        assert result > 2.0
+
+    def test_volume_insufficient_data(self):
+        volumes = pd.Series([1_000_000] * 5)
+        assert np.isnan(calculate_volume_trend(volumes))
+
+    def test_volume_not_series(self):
+        assert np.isnan(calculate_volume_trend([1_000_000] * 20))
+
+
+class TestCalculatePriceTo52wkHigh:
+    """Tests for calculate_price_to_52wk_high function."""
+
+    def test_at_high(self):
+        prices = pd.Series([100.0] * 252)
+        result = calculate_price_to_52wk_high(prices)
+        assert abs(result - 1.0) < 1e-10
+
+    def test_below_high(self):
+        prices = pd.Series([200.0] + [100.0] * 251)
+        result = calculate_price_to_52wk_high(prices)
+        assert abs(result - 0.5) < 1e-10
+
+    def test_range_zero_to_one(self):
+        np.random.seed(42)
+        prices = pd.Series(np.random.uniform(50, 200, 300))
+        result = calculate_price_to_52wk_high(prices)
+        assert 0 < result <= 1.0
+
+    def test_insufficient_data(self):
+        prices = pd.Series([100.0] * 100)
+        assert np.isnan(calculate_price_to_52wk_high(prices))
+
+    def test_not_series(self):
+        assert np.isnan(calculate_price_to_52wk_high([100.0] * 252))
 
 
 class TestFeatureCreation:

@@ -138,7 +138,59 @@ def sample_processed_dataset():
         'roe': np.random.uniform(0.05, 0.3, n),
         'debt_to_assets': np.random.uniform(0.1, 0.6, n),
         'current_ratio': np.random.uniform(0.8, 3.0, n),
+        'rsi_14': np.random.uniform(20, 80, n),
+        'macd_histogram': np.random.uniform(-2, 2, n),
+        'bollinger_width': np.random.uniform(0.02, 0.15, n),
+        'volume_trend': np.random.uniform(0.5, 2.0, n),
+        'price_to_52wk_high': np.random.uniform(0.6, 1.0, n),
         'benchmark_return': np.random.uniform(-0.1, 0.15, n),
         'target_excess_return': np.random.uniform(-0.3, 0.4, n),
         'target_return': np.random.uniform(-0.3, 0.5, n),
     })
+
+
+@pytest.fixture
+def sample_dirty_dataset():
+    """Create a processed dataset with realistic NaN patterns and extreme outliers.
+
+    Mimics the data quality issues found when expanding to 438 companies:
+    - ~45% NaN in debt_to_equity, interest_coverage, market_cap
+    - Extreme outlier values in ROA, ROE
+    """
+    np.random.seed(42)
+    n = 100
+    tickers = np.random.choice(['TEST_A', 'TEST_B', 'TEST_C'], n)
+    sectors = np.where(tickers == 'TEST_A', 'Technology',
+                       np.where(tickers == 'TEST_B', 'Financials', 'Technology'))
+
+    df = pd.DataFrame({
+        'ticker': tickers,
+        'date': pd.date_range('2016-03-31', periods=n, freq='QE'),
+        'sector': sectors,
+        'quarter_price': np.random.uniform(50, 200, n),
+        'revenue': np.random.uniform(1e9, 50e9, n),
+        'revenue_growth': np.random.uniform(-0.2, 0.3, n),
+        'profit_margin': np.random.uniform(-0.1, 0.3, n),
+        'operating_margin': np.random.uniform(0.05, 0.4, n),
+        'net_income': np.random.uniform(1e8, 5e9, n),
+        'roa': np.random.uniform(0.01, 0.1, n),
+        'roe': np.random.uniform(0.05, 0.3, n),
+        'debt_to_equity': np.random.uniform(0.1, 2.0, n),
+        'debt_to_assets': np.random.uniform(0.1, 0.6, n),
+        'current_ratio': np.random.uniform(0.8, 3.0, n),
+        'interest_coverage': np.random.uniform(1, 50, n),
+        'market_cap': np.random.uniform(1e9, 1e12, n),
+        'target_return': np.random.uniform(-0.3, 0.5, n),
+    })
+
+    # Inject realistic NaN patterns (~45% for some features)
+    for col in ['debt_to_equity', 'interest_coverage', 'market_cap', 'debt_to_assets']:
+        nan_mask = np.random.random(n) < 0.45
+        df.loc[nan_mask, col] = np.nan
+
+    # Inject extreme outliers (like real data: ROA max 1.7M, ROE max 1.7M)
+    df.loc[0, 'roe'] = 1_768_519.0
+    df.loc[1, 'roa'] = 500_000.0
+    df.loc[2, 'debt_to_equity'] = -548.0
+
+    return df

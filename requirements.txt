@@ -10,6 +10,7 @@ lxml
 # Machine Learning
 scikit-learn
 xgboost
+optuna
 
 # Visualization
 matplotlib

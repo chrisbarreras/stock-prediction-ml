@@ -19,6 +19,13 @@ class TestDatasetValidation:
         assert 'benchmark_return' in sample_processed_dataset.columns
         assert 'target_excess_return' in sample_processed_dataset.columns
 
+    def test_has_technical_features(self, sample_processed_dataset):
+        """Dataset should have new technical indicator columns."""
+        technical = ['rsi_14', 'macd_histogram', 'bollinger_width',
+                     'volume_trend', 'price_to_52wk_high']
+        for col in technical:
+            assert col in sample_processed_dataset.columns, f"Missing: {col}"
+
     def test_no_nan_in_target(self, sample_processed_dataset):
         assert not sample_processed_dataset['target_return'].isna().any(), \
             "target_return contains NaN values"
@@ -122,6 +129,70 @@ class TestSectorDataValidation:
     def test_entries_have_sub_industry(self, sample_sector_data):
         for ticker, info in sample_sector_data.items():
             assert 'sub_industry' in info, f"{ticker} missing sub_industry"
+
+
+class TestDataCleaningPipeline:
+    """Tests for the NaN imputation and outlier handling pipeline."""
+
+    def test_winsorize_clips_extreme_ratios(self, sample_dirty_dataset):
+        """Winsorizing to 1st-99th percentile should remove extreme ROE/ROA."""
+        df = sample_dirty_dataset.copy()
+        for col in ['roa', 'roe', 'debt_to_equity']:
+            valid_mask = df[col].notna()
+            if valid_mask.sum() > 10:
+                values = df.loc[valid_mask, col].values
+                p1, p99 = np.percentile(values, [1, 99])
+                df.loc[valid_mask, col] = np.clip(values, p1, p99)
+        # After winsorization, extreme values should be gone
+        assert df['roe'].max() < 1_768_519.0
+        assert df['roa'].max() < 500_000.0
+
+    def test_forward_fill_preserves_valid_values(self, sample_dirty_dataset):
+        """Forward fill should not overwrite existing valid values."""
+        df = sample_dirty_dataset.copy()
+        original_revenue = df['revenue'].copy()
+        # Revenue has no NaN, so ffill should not change it
+        df['revenue'] = df.groupby('ticker')['revenue'].transform(lambda x: x.ffill())
+        np.testing.assert_array_equal(original_revenue.values, df['revenue'].values)
+
+    def test_forward_fill_reduces_nans(self, sample_dirty_dataset):
+        """Forward fill within companies should reduce NaN count."""
+        df = sample_dirty_dataset.copy().sort_values(['ticker', 'date'])
+        before_nans = df['debt_to_equity'].isna().sum()
+        df['debt_to_equity'] = df.groupby('ticker')['debt_to_equity'].transform(
+            lambda x: x.ffill()
+        )
+        after_nans = df['debt_to_equity'].isna().sum()
+        assert after_nans <= before_nans
+
+    def test_sector_median_fills_remaining_nans(self, sample_dirty_dataset):
+        """Sector median should fill NaN values that forward-fill missed."""
+        df = sample_dirty_dataset.copy()
+        col = 'interest_coverage'
+        before_nans = df[col].isna().sum()
+        assert before_nans > 0, "Test fixture should have NaN values"
+        sector_median = df.groupby('sector')[col].transform('median')
+        mask = df[col].isna()
+        df.loc[mask, col] = sector_median.loc[mask]
+        after_nans = df[col].isna().sum()
+        assert after_nans < before_nans
+
+    def test_no_nan_after_full_pipeline(self, sample_dirty_dataset):
+        """After the full cleaning pipeline, no NaN should remain in numeric features."""
+        df = sample_dirty_dataset.copy().sort_values(['ticker', 'date'])
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        numeric_cols = [c for c in numeric_cols if c != 'target_return']
+        # Forward fill
+        df[numeric_cols] = df.groupby('ticker')[numeric_cols].transform(lambda x: x.ffill())
+        # Sector median
+        sector_medians = df.groupby('sector')[numeric_cols].transform('median')
+        for col in numeric_cols:
+            mask = df[col].isna()
+            if mask.any():
+                df.loc[mask, col] = sector_medians.loc[mask, col]
+        # Last resort
+        df[numeric_cols] = df[numeric_cols].fillna(0)
+        assert not df[numeric_cols].isna().any().any()
 
 
 class TestMacroDataValidation:
