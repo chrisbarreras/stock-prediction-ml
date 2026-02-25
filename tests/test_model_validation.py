@@ -104,3 +104,12 @@ class TestModelMetrics:
         correct = np.sum(np.sign(y_true) == np.sign(y_pred))
         accuracy = correct / len(y_true)
         assert 0 <= accuracy <= 1
+
+    def test_spearman_rank_correlation(self):
+        """Spearman rank correlation should be between -1 and 1."""
+        from scipy.stats import spearmanr
+        y_true = np.array([0.1, -0.05, 0.2, -0.1, 0.05, 0.15, -0.02])
+        y_pred = np.array([0.05, -0.02, 0.15, 0.01, 0.03, 0.1, -0.01])
+        rho, pval = spearmanr(y_true, y_pred)
+        assert -1 <= rho <= 1
+        assert rho > 0  # predictions should have positive rank correlation

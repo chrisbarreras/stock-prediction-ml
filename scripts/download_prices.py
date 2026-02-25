@@ -10,7 +10,7 @@ import requests
 from io import StringIO
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
-START_DATE = '2009-01-01'
+START_DATE = '2005-01-01'
 
 # Step 1: Get S&P 500 ticker list from Wikipedia
 print('Fetching S&P 500 ticker list from Wikipedia...')
@@ -48,11 +48,34 @@ for i, ticker in enumerate(sp500_tickers):
 
     time.sleep(0.3)
 
-print(f'\n=== Download Complete ===')
-print(f'Successful: {len(price_data)}')
-print(f'Failed: {len(failed_tickers)}')
+print(f'\nFirst pass: {len(price_data)} successful, {len(failed_tickers)} failed')
 
-# Step 3: Backup and save
+# Step 3: Retry failed tickers
+if failed_tickers:
+    print(f'\nRetrying {len(failed_tickers)} failed tickers with longer delay...')
+    still_failed = []
+    for ticker in failed_tickers:
+        try:
+            time.sleep(2)
+            t = yf.Ticker(ticker)
+            df = t.history(start=START_DATE, auto_adjust=False)
+            if len(df) > 100:
+                df.index = df.index.tz_localize(None) if df.index.tz else df.index
+                cols = [c for c in ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'] if c in df.columns]
+                price_data[ticker] = df[cols].copy()
+                print(f'  Recovered: {ticker}')
+            else:
+                still_failed.append(ticker)
+        except Exception:
+            still_failed.append(ticker)
+
+    print(f'Recovered: {len(failed_tickers) - len(still_failed)}')
+    if still_failed:
+        print(f'Still failed ({len(still_failed)}): {still_failed}')
+
+print(f'\n=== Final: {len(price_data)} tickers ===')
+
+# Step 4: Backup and save
 old_path = os.path.join(DATA_DIR, 'price_data.pkl')
 backup_path = os.path.join(DATA_DIR, 'price_data_kaggle_backup.pkl')
 

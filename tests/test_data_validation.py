@@ -195,6 +195,60 @@ class TestDataCleaningPipeline:
         assert not df[numeric_cols].isna().any().any()
 
 
+class TestSectorRelativeFeatures:
+    """Tests for sector-relative and z-score features."""
+
+    def test_has_sector_vs_features(self, sample_processed_dataset):
+        """Dataset should have sector-relative difference features."""
+        vs_features = ['profit_margin_vs_sector', 'roe_vs_sector']
+        for col in vs_features:
+            assert col in sample_processed_dataset.columns, f"Missing: {col}"
+
+    def test_has_sector_z_scores(self, sample_processed_dataset):
+        """Dataset should have sector z-score features."""
+        z_features = ['profit_margin_sector_z', 'roe_sector_z']
+        for col in z_features:
+            assert col in sample_processed_dataset.columns, f"Missing: {col}"
+
+    def test_z_scores_are_finite(self, sample_processed_dataset):
+        """Sector z-scores should contain no NaN or inf values."""
+        z_cols = [c for c in sample_processed_dataset.columns if c.endswith('_sector_z')]
+        for col in z_cols:
+            assert not sample_processed_dataset[col].isna().any(), f"{col} contains NaN"
+            assert not np.isinf(sample_processed_dataset[col]).any(), f"{col} contains inf"
+
+    def test_sector_z_score_computation(self):
+        """Sector z-scores should have approximately zero mean within each sector."""
+        data = pd.DataFrame({
+            'sector': ['A', 'A', 'A', 'B', 'B', 'B'],
+            'metric': [1.0, 2.0, 3.0, 10.0, 20.0, 30.0],
+        })
+        sector_median = data.groupby('sector')['metric'].transform('median')
+        sector_std = data.groupby('sector')['metric'].transform('std')
+        z = (data['metric'] - sector_median) / sector_std
+        for sector in ['A', 'B']:
+            mask = data['sector'] == sector
+            assert abs(z[mask].mean()) < 0.01
+
+
+class TestFeatureInteractions:
+    """Tests for feature interaction columns."""
+
+    def test_has_interaction_features(self, sample_processed_dataset):
+        """Dataset should have feature interaction columns."""
+        interactions = ['momentum_x_quality', 'risk_leverage', 'growth_profitability']
+        for col in interactions:
+            assert col in sample_processed_dataset.columns, f"Missing: {col}"
+
+    def test_interactions_are_finite(self, sample_processed_dataset):
+        """Feature interactions should contain no NaN or inf values."""
+        interactions = ['momentum_x_quality', 'risk_leverage', 'growth_profitability']
+        for col in interactions:
+            if col in sample_processed_dataset.columns:
+                assert not sample_processed_dataset[col].isna().any(), f"{col} contains NaN"
+                assert not np.isinf(sample_processed_dataset[col]).any(), f"{col} contains inf"
+
+
 class TestMacroDataValidation:
     """Tests for macro data format."""
 

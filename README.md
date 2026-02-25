@@ -4,22 +4,22 @@ Predicting quarterly S&P 500 stock returns using financial fundamentals, technic
 
 ## Overview
 
-This project builds an XGBoost regression model to predict next-quarter stock returns based on 37 features (selected from 42 candidates) derived from real SEC EDGAR filings, technical price indicators, FRED macroeconomic data, and sector-relative metrics. The model is trained on 45 S&P 500 companies using quarterly data from 2009-2026, with a temporal train/test split to prevent data leakage.
+This project builds an XGBoost regression model to predict next-quarter excess stock returns (vs S&P 500 benchmark) based on features derived from real SEC EDGAR filings, technical price indicators, FRED macroeconomic data, and sector-relative metrics. The model is trained on ~436 S&P 500 companies using quarterly data from 2005-2026, with a temporal train/test split to prevent data leakage. Hyperparameters are tuned via Optuna Bayesian optimization with expanding-window time-series cross-validation.
 
 ## Results
 
 | Metric | Value |
 |--------|-------|
-| Test RMSE | 0.1420 |
-| Test R2 | -0.0124 |
-| Direction Accuracy | 60.4% |
-| CV RMSE | 0.1325 (+/- 0.0251) |
-| Overfit Ratio | 0.88 |
-| Temporal Split | 995 train / 235 test |
+| Direction Accuracy | 54.7% (calibrated) |
+| Overfit Ratio | 0.87 |
+| Test R2 | -0.018 |
+| Features | 15 (after automated selection) |
+| Trees | 145 (early stopping) |
+| Dataset | ~10,700 samples, ~436 companies |
 
 ## Features
 
-The model uses 37 features (after automated selection from 42 candidates) across 8 categories:
+The model uses features across 9 categories, automatically selected from candidates via correlation filtering:
 
 **Profitability** - revenue, revenue_growth, profit_margin, operating_margin, net_income, net_income_growth, operating_income_growth
 
@@ -33,77 +33,65 @@ The model uses 37 features (after automated selection from 42 candidates) across
 
 **Cash Flow & Valuation** - operating_cash_flow, free_cash_flow, fcf_margin, market_cap, pe_ratio, price_to_book, quarter_price
 
-**Technical Indicators** - ma_50_ratio, ma_200_ratio, momentum_3m, volatility
+**Technical Indicators** - ma_50_ratio, ma_200_ratio, momentum_3m, volatility, rsi_14, macd_histogram, bollinger_width, volume_trend, price_to_52wk_high
 
-**Macro & Sector** - gs10 (10yr Treasury), vix, unemployment, gdp, cpi, profit_margin_vs_sector, operating_margin_vs_sector, roe_vs_sector, revenue_growth_vs_sector, debt_to_equity_vs_sector, pe_ratio_vs_sector
+**Macro** - gs10 (10yr Treasury), vix, unemployment, gdp, cpi
+
+**Sector-Relative & Interactions** - sector z-scores, sector differences, momentum x quality, risk x leverage, growth x profitability
 
 ## Project Structure
 
 ```
 stock-prediction-ml/
+├── scripts/                             # Data collection (run these first)
+│   ├── download_prices.py               # S&P 500 price data via yfinance
+│   ├── download_spy.py                  # SPY benchmark prices via yfinance
+│   ├── download_sectors.py              # Sector classifications from Wikipedia
+│   ├── download_macro.py                # FRED macroeconomic indicators
+│   └── extract_financials.py            # Parse SEC EDGAR quarterly filings
 ├── notebooks/
-│   ├── 01_data_collection.ipynb       # Load Kaggle price data (legacy)
-│   ├── 01b_real_data_collection.ipynb  # Parse SEC EDGAR financial data
-│   ├── 01c_yfinance_prices.ipynb      # Download extended price data (2009-present)
-│   ├── 01d_sector_data.ipynb          # S&P 500 sector classifications
-│   ├── 01e_fred_macro.ipynb           # FRED macroeconomic indicators
-│   ├── 02_feature_engineering.ipynb    # Transform raw data into 42 ML features
-│   ├── 03_model_training.ipynb        # Train XGBoost model (Google Colab)
-│   └── 04_analysis.ipynb              # Evaluate results and visualizations
-├── scripts/
-│   ├── download_prices.py             # yfinance price download script
-│   ├── download_sectors.py            # Wikipedia sector scraper script
-│   └── download_spy.py               # SPY benchmark data download script
+│   ├── 01_data_collection.ipynb         # Run all data collection scripts
+│   ├── 02_feature_engineering.ipynb      # Transform raw data into ML features
+│   ├── 03_model_training.ipynb          # Train XGBoost model (Google Colab)
+│   └── 04_analysis.ipynb               # Evaluate results and visualizations
 ├── data/
-│   ├── raw/kaggle/                    # SEC EDGAR filings + Kaggle price data
-│   └── processed_dataset.csv          # Final ML-ready dataset (1,230 samples)
+│   ├── raw/kaggle/sec_edgar/            # SEC EDGAR XBRL filings
+│   └── processed_dataset.csv           # Final ML-ready dataset
 ├── src/
 │   ├── __init__.py
-│   └── features.py                    # Importable feature engineering functions
+│   └── features.py                      # Importable feature engineering functions
 ├── tests/
-│   ├── conftest.py                    # Shared pytest fixtures (synthetic data)
-│   ├── test_data_validation.py        # Data format and range validation
-│   ├── test_feature_engineering.py    # Feature function unit tests
-│   └── test_model_validation.py       # Model output structure tests
+│   ├── conftest.py                      # Shared pytest fixtures (synthetic data)
+│   ├── test_data_validation.py          # Data format and range validation
+│   ├── test_feature_engineering.py      # Feature function unit tests
+│   └── test_model_validation.py         # Model output structure tests
 ├── models/
-│   └── model_results.pkl              # Trained model, metrics, and predictions
-├── results/
-│   ├── data_exploration.png           # Dataset distributions
-│   ├── feature_importance.png         # XGBoost feature importance
-│   ├── feature_importance_analysis.png
-│   ├── prediction_analysis.png        # Predicted vs actual returns
-│   ├── correlation_heatmap.png        # Feature correlations
-│   └── model_results.png             # Model performance plots
-├── .github/
-│   └── workflows/
-│       └── ci.yml                     # GitHub Actions CI pipeline
+│   └── model_results.pkl                # Trained model, metrics, and predictions
+├── results/                             # Generated charts and visualizations
+├── .github/workflows/ci.yml             # GitHub Actions CI pipeline
 ├── requirements.txt
-└── requirements-dev.txt               # Test dependencies (pytest, flake8)
+└── requirements-dev.txt                 # Test dependencies (pytest, flake8)
 ```
 
 ## Data Sources
 
-- **Stock Prices**: [Yahoo Finance](https://finance.yahoo.com/) via yfinance - Daily OHLCV for 502 S&P 500 companies (2009-2026)
+- **Stock Prices**: [Yahoo Finance](https://finance.yahoo.com/) via yfinance - Daily OHLCV for ~500 S&P 500 companies (2005-present)
 - **Financial Statements**: [SEC EDGAR](https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip) - Real quarterly filings (10-Q) parsed from XBRL
-- **Benchmark Prices**: [Yahoo Finance](https://finance.yahoo.com/) via yfinance - S&P 500 (SPY) daily prices for benchmark returns
+- **Benchmark Prices**: [Yahoo Finance](https://finance.yahoo.com/) via yfinance - S&P 500 (SPY) daily prices for excess return calculation
 - **Macroeconomic Data**: [FRED](https://fred.stlouisfed.org/) - 10yr Treasury, VIX, unemployment, GDP, CPI
 - **Sector Classifications**: [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies) - GICS sector and sub-industry
 
-### Companies Analyzed
-
-45 S&P 500 companies across sectors including technology, finance, healthcare, consumer, and industrials.
-
 ## Methodology
 
-1. **Data Collection** - Downloaded 17 years of daily stock prices via yfinance for 502 S&P 500 companies. Parsed real quarterly financial statements from SEC EDGAR bulk XBRL data. Downloaded macroeconomic indicators from FRED, sector classifications from Wikipedia, and S&P 500 (SPY) benchmark prices.
+1. **Data Collection** - Scripts download daily stock prices via yfinance, parse quarterly financial statements from SEC EDGAR XBRL data, fetch macroeconomic indicators from FRED, and scrape sector classifications from Wikipedia.
 
-2. **Feature Engineering** - Computed 42 candidate features including profitability ratios, growth metrics, leverage ratios, efficiency metrics, valuation multiples, technical indicators (moving average ratios, momentum, volatility), macroeconomic context, and sector-relative comparisons. Matched stock prices to quarter-end dates and computed 90-day forward returns as the prediction target.
+2. **Feature Engineering** - Computed features including profitability ratios, growth metrics, leverage ratios, efficiency metrics, valuation multiples, technical indicators (RSI, MACD, Bollinger Bands, momentum, volatility), macroeconomic context, sector-relative z-scores, and feature interactions. Target is excess return (stock return minus S&P 500 return).
 
-3. **Feature Selection** - Automated pipeline removes zero-variance features and highly correlated features (>0.95 correlation threshold), reducing from 42 to 37 features.
+3. **Feature Selection** - Automated pipeline removes zero-variance features, highly correlated features (>0.95 threshold), and features with weak target correlation (<0.03 threshold).
 
-4. **Model Training** - Temporal train/test split (cutoff: 2023-07-28) ensures the model is only evaluated on future data it hasn't seen. Expanding-window time-series cross-validation with 5 folds. Hyperparameter tuning via RandomizedSearchCV (50 iterations) over 8 XGBoost parameters.
+4. **Model Training** - Temporal train/test split ensures the model is only evaluated on future data. Expanding-window time-series cross-validation with 5 folds. Hyperparameter tuning via Optuna Bayesian optimization (150 trials) with early stopping. Huber loss objective for robustness to outliers.
 
-5. **Analysis** - Evaluated model using RMSE, R2, MAE, overfit ratio, cross-validation RMSE, and directional accuracy. Analyzed feature importance and prediction patterns across 45 companies.
+5. **Analysis** - Evaluated using RMSE, R2, MAE, overfit ratio, Spearman rank correlation, and directional accuracy. Includes Optuna-tuned binary classifier for direction prediction.
 
 ## Setup
 
@@ -115,30 +103,47 @@ cd stock-prediction-ml
 # Create virtual environment
 python -m venv venv
 venv\Scripts\activate  # Windows
+# source venv/bin/activate  # macOS/Linux
 
 # Install dependencies
 pip install -r requirements.txt
 ```
 
-Run notebooks 01b, 01c, 01d, 01e, 02, and 04 locally. Notebook 03 was designed for Google Colab with GPU support. A FRED API key is required for notebook 01e (free at https://fred.stlouisfed.org/).
+### Data Collection
+
+A FRED API key is required for macro data (free at https://fred.stlouisfed.org/). SEC EDGAR bulk data must be downloaded separately ([companyfacts.zip](https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip)).
+
+Run notebook 01 to execute all data collection scripts, or run them individually:
+
+```bash
+python scripts/download_prices.py       # S&P 500 prices via yfinance (~5 min)
+python scripts/download_spy.py          # SPY benchmark prices
+python scripts/download_sectors.py      # Sector classifications from Wikipedia
+python scripts/download_macro.py        # FRED macro data (requires FRED_API_KEY in .env)
+python scripts/extract_financials.py    # Parse SEC EDGAR quarterly filings
+```
+
+### Model Pipeline
+
+Run notebook 02 (feature engineering) locally, notebook 03 (model training) on Google Colab with GPU, and notebook 04 (analysis) locally.
 
 ## Limitations
 
-- 1,230 samples from 45 companies (limited by SEC filing completeness)
-- Negative test R2 indicates the model doesn't generalize well on unseen future periods
+- Negative test R2 indicates the model doesn't generalize well on unseen future periods — this is typical for stock prediction
 - No sentiment or alternative data sources
 - Single model architecture (XGBoost only)
+- Quarterly prediction horizon limits sample count per company
 
 ## Potential Improvements
 
 - Experiment with LSTM or transformer models for time series
 - Add sentiment analysis from earnings calls or news
-- Expand dataset with more companies and longer history
 - Ensemble methods combining multiple model architectures
+- Shorter prediction horizons (monthly) for more training samples
 
 ## Testing
 
-75 automated tests covering feature engineering, data validation, and model output structure. All tests use synthetic data and run without real data files.
+110 automated tests covering feature engineering, data validation, and model output structure. All tests use synthetic data and run without real data files.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -149,10 +154,10 @@ CI runs automatically on push/PR via GitHub Actions.
 
 ## Tech Stack
 
-- Python 3.12
-- XGBoost
+- Python 3.13
+- XGBoost, Optuna, scikit-learn, scipy
 - yfinance, fredapi
-- pandas, NumPy, scikit-learn
+- pandas, NumPy
 - matplotlib, seaborn
 - pytest, flake8
 - GitHub Actions (CI)

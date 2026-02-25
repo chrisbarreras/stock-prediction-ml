@@ -128,6 +128,7 @@ def sample_processed_dataset():
     return pd.DataFrame({
         'ticker': np.random.choice(['TEST_A', 'TEST_B', 'TEST_C'], n),
         'date': pd.date_range('2016-03-31', periods=n, freq='QE'),
+        'sector': np.random.choice(['Technology', 'Financials', 'Healthcare'], n),
         'quarter_price': np.random.uniform(50, 200, n),
         'revenue': np.random.uniform(1e9, 50e9, n),
         'revenue_growth': np.random.uniform(-0.2, 0.3, n),
@@ -138,11 +139,23 @@ def sample_processed_dataset():
         'roe': np.random.uniform(0.05, 0.3, n),
         'debt_to_assets': np.random.uniform(0.1, 0.6, n),
         'current_ratio': np.random.uniform(0.8, 3.0, n),
+        'momentum_3m': np.random.uniform(-0.3, 0.3, n),
+        'volatility': np.random.uniform(0.1, 0.5, n),
         'rsi_14': np.random.uniform(20, 80, n),
         'macd_histogram': np.random.uniform(-2, 2, n),
         'bollinger_width': np.random.uniform(0.02, 0.15, n),
         'volume_trend': np.random.uniform(0.5, 2.0, n),
         'price_to_52wk_high': np.random.uniform(0.6, 1.0, n),
+        # Sector-relative features
+        'profit_margin_vs_sector': np.random.uniform(-0.2, 0.2, n),
+        'roe_vs_sector': np.random.uniform(-0.15, 0.15, n),
+        'profit_margin_sector_z': np.random.uniform(-2, 2, n),
+        'roe_sector_z': np.random.uniform(-2, 2, n),
+        # Feature interactions
+        'momentum_x_quality': np.random.uniform(-0.1, 0.1, n),
+        'risk_leverage': np.random.uniform(0, 0.3, n),
+        'growth_profitability': np.random.uniform(-0.05, 0.05, n),
+        # Targets
         'benchmark_return': np.random.uniform(-0.1, 0.15, n),
         'target_excess_return': np.random.uniform(-0.3, 0.4, n),
         'target_return': np.random.uniform(-0.3, 0.5, n),

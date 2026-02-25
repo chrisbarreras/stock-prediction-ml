@@ -8,7 +8,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
 
 print("Downloading SPY benchmark data...")
 spy = yf.Ticker('SPY')
-spy_prices = spy.history(start='2008-01-01')
+spy_prices = spy.history(start='2005-01-01')
 
 if spy_prices is not None and len(spy_prices) > 0:
     # Strip timezone for compatibility

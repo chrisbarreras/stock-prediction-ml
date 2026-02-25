@@ -11,6 +11,7 @@ lxml
 scikit-learn
 xgboost
 optuna
+scipy
 
 # Visualization
 matplotlib
