@@ -33,10 +33,12 @@ print(f'Download range: {START_DATE} to present\n')
 # Define indicators
 INDICATORS = {
     'GS10': '10-Year Treasury Constant Maturity Rate (daily)',
+    'GS3M': '3-Month Treasury Constant Maturity Rate (daily)',
     'VIXCLS': 'CBOE Volatility Index (daily)',
     'UNRATE': 'Unemployment Rate (monthly)',
     'GDP': 'Gross Domestic Product (quarterly)',
     'CPIAUCSL': 'Consumer Price Index (monthly)',
+    'USREC': 'NBER US Recession Indicator (monthly 0/1)',
 }
 
 print('Indicators to download:')
