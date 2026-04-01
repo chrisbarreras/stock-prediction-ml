@@ -4,10 +4,17 @@ import numpy as np
 import pandas as pd
 
 from src.features import (
-    safe_loc, safe_divide, safe_growth, calculate_return,
-    calculate_excess_return, select_features,
-    calculate_rsi, calculate_macd_histogram, calculate_bollinger_width,
-    calculate_volume_trend, calculate_price_to_52wk_high,
+    calculate_bollinger_width,
+    calculate_excess_return,
+    calculate_macd_histogram,
+    calculate_price_to_52wk_high,
+    calculate_return,
+    calculate_rsi,
+    calculate_volume_trend,
+    safe_divide,
+    safe_growth,
+    safe_loc,
+    select_features,
 )
 
 
@@ -16,43 +23,43 @@ class TestSafeLoc:
 
     def test_valid_lookup(self):
         df = pd.DataFrame(
-            {'2024-03-31': [100, 200]},
-            index=['Revenue', 'Net Income'],
+            {"2024-03-31": [100, 200]},
+            index=["Revenue", "Net Income"],
         )
-        assert safe_loc(df, 'Revenue', '2024-03-31') == 100.0
+        assert safe_loc(df, "Revenue", "2024-03-31") == 100.0
 
     def test_missing_metric(self):
         df = pd.DataFrame(
-            {'2024-03-31': [100]},
-            index=['Revenue'],
+            {"2024-03-31": [100]},
+            index=["Revenue"],
         )
-        assert np.isnan(safe_loc(df, 'Nonexistent', '2024-03-31'))
+        assert np.isnan(safe_loc(df, "Nonexistent", "2024-03-31"))
 
     def test_missing_quarter(self):
         df = pd.DataFrame(
-            {'2024-03-31': [100]},
-            index=['Revenue'],
+            {"2024-03-31": [100]},
+            index=["Revenue"],
         )
-        assert np.isnan(safe_loc(df, 'Revenue', '2099-01-01'))
+        assert np.isnan(safe_loc(df, "Revenue", "2099-01-01"))
 
     def test_nan_value(self):
         df = pd.DataFrame(
-            {'2024-03-31': [np.nan]},
-            index=['Revenue'],
+            {"2024-03-31": [np.nan]},
+            index=["Revenue"],
         )
-        assert np.isnan(safe_loc(df, 'Revenue', '2024-03-31'))
+        assert np.isnan(safe_loc(df, "Revenue", "2024-03-31"))
 
     def test_returns_float(self):
         df = pd.DataFrame(
-            {'2024-03-31': [42]},
-            index=['Revenue'],
+            {"2024-03-31": [42]},
+            index=["Revenue"],
         )
-        result = safe_loc(df, 'Revenue', '2024-03-31')
+        result = safe_loc(df, "Revenue", "2024-03-31")
         assert isinstance(result, float)
 
     def test_empty_dataframe(self):
         df = pd.DataFrame()
-        assert np.isnan(safe_loc(df, 'Revenue', '2024-03-31'))
+        assert np.isnan(safe_loc(df, "Revenue", "2024-03-31"))
 
 
 class TestSafeDivide:
@@ -160,28 +167,32 @@ class TestSelectFeatures:
         x1 = np.random.normal(0, 1, 100)
         x2 = x1 + np.random.normal(0, 0.01, 100)  # nearly identical
         x3 = np.random.normal(0, 1, 100)  # independent
-        df = pd.DataFrame({'x1': x1, 'x2': x2, 'x3': x3})
+        df = pd.DataFrame({"x1": x1, "x2": x2, "x3": x3})
         result, dropped = select_features(df, corr_threshold=0.95)
         assert len(dropped) == 1
-        assert 'x3' in result.columns
+        assert "x3" in result.columns
         assert result.shape[1] == 2
 
     def test_keeps_uncorrelated(self):
         np.random.seed(42)
-        df = pd.DataFrame({
-            'a': np.random.normal(0, 1, 100),
-            'b': np.random.normal(0, 1, 100),
-            'c': np.random.normal(0, 1, 100),
-        })
+        df = pd.DataFrame(
+            {
+                "a": np.random.normal(0, 1, 100),
+                "b": np.random.normal(0, 1, 100),
+                "c": np.random.normal(0, 1, 100),
+            }
+        )
         result, dropped = select_features(df, corr_threshold=0.95)
         assert len(dropped) == 0
         assert result.shape[1] == 3
 
     def test_returns_dataframe(self):
-        df = pd.DataFrame({
-            'a': [1, 2, 3],
-            'b': [4, 5, 6],
-        })
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [4, 5, 6],
+            }
+        )
         result, dropped = select_features(df)
         assert isinstance(result, pd.DataFrame)
         assert isinstance(dropped, list)
@@ -190,7 +201,7 @@ class TestSelectFeatures:
         np.random.seed(42)
         x1 = np.random.normal(0, 1, 100)
         x2 = x1 + np.random.normal(0, 0.3, 100)  # corr ~0.95
-        df = pd.DataFrame({'x1': x1, 'x2': x2})
+        df = pd.DataFrame({"x1": x1, "x2": x2})
         # With strict threshold, should drop
         _, dropped_strict = select_features(df, corr_threshold=0.8)
         assert len(dropped_strict) >= 1
@@ -322,36 +333,36 @@ class TestFeatureCreation:
         for ticker, df in sample_price_data.items():
             assert isinstance(df, pd.DataFrame)
             assert isinstance(df.index, pd.DatetimeIndex)
-            assert 'Adj Close' in df.columns
-            assert 'Volume' in df.columns
+            assert "Adj Close" in df.columns
+            assert "Volume" in df.columns
             assert len(df) > 0
 
     def test_financial_data_format(self, sample_financial_data):
         for company in sample_financial_data:
-            assert 'ticker' in company
-            assert 'quarterly_income' in company
-            assert 'quarterly_balance' in company
-            income = company['quarterly_income']
-            assert 'Total Revenue' in income.index
-            assert 'Net Income' in income.index
+            assert "ticker" in company
+            assert "quarterly_income" in company
+            assert "quarterly_balance" in company
+            income = company["quarterly_income"]
+            assert "Total Revenue" in income.index
+            assert "Net Income" in income.index
 
     def test_financial_data_metrics_as_rows(self, sample_financial_data):
         """Verify metrics are rows and quarters are columns."""
         company = sample_financial_data[0]
-        income = company['quarterly_income']
+        income = company["quarterly_income"]
         assert income.shape[0] == 11  # 11 income metrics
-        assert income.shape[1] == 8   # 8 quarters
+        assert income.shape[1] == 8  # 8 quarters
         assert isinstance(income.columns[0], pd.Timestamp)
 
     def test_sector_data_format(self, sample_sector_data):
         for ticker, info in sample_sector_data.items():
-            assert 'sector' in info
-            assert 'sub_industry' in info
-            assert isinstance(info['sector'], str)
+            assert "sector" in info
+            assert "sub_industry" in info
+            assert isinstance(info["sector"], str)
 
     def test_macro_data_format(self, sample_macro_data):
-        assert 'GS10' in sample_macro_data
-        assert 'VIXCLS' in sample_macro_data
+        assert "GS10" in sample_macro_data
+        assert "VIXCLS" in sample_macro_data
         for series_id, data in sample_macro_data.items():
             assert isinstance(data, pd.Series)
             assert isinstance(data.index, pd.DatetimeIndex)

@@ -1,0 +1,14 @@
+data/
+models/
+results/
+notebooks/
+.git/
+.github/
+__pycache__/
+*.pyc
+venv/
+.env
+*.pkl
+*.csv
+*.h5
+*.hdf5

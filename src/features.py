@@ -1,10 +1,12 @@
 """Feature engineering helper functions for stock prediction model."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
 
-def safe_loc(df, metric, quarter):
+def safe_loc(df: pd.DataFrame, metric: str, quarter: str) -> float:
     """Safely get value from DataFrame using .loc[metric, quarter].
 
     Args:
@@ -19,13 +21,13 @@ def safe_loc(df, metric, quarter):
         if metric in df.index and quarter in df.columns:
             val = df.loc[metric, quarter]
             if pd.notna(val):
-                return float(val)
+                return float(val)  # type: ignore[arg-type]
     except Exception:
         pass
     return np.nan
 
 
-def safe_divide(a, b):
+def safe_divide(a: float, b: float) -> float:
     """Safely divide two numbers, returning NaN for zero/NaN denominators.
 
     Args:
@@ -40,7 +42,7 @@ def safe_divide(a, b):
     return a / b
 
 
-def safe_growth(current, previous):
+def safe_growth(current: float, previous: float) -> float:
     """Calculate growth rate between two values.
 
     Args:
@@ -55,7 +57,7 @@ def safe_growth(current, previous):
     return (current - previous) / abs(previous)
 
 
-def calculate_return(current_price, future_price):
+def calculate_return(current_price: float, future_price: float) -> float:
     """Calculate simple return between two prices.
 
     Args:
@@ -70,7 +72,7 @@ def calculate_return(current_price, future_price):
     return (future_price - current_price) / current_price
 
 
-def calculate_excess_return(stock_return, benchmark_return):
+def calculate_excess_return(stock_return: float, benchmark_return: float) -> float:
     """Calculate excess return (stock return minus benchmark).
 
     Args:
@@ -85,7 +87,7 @@ def calculate_excess_return(stock_return, benchmark_return):
     return stock_return - benchmark_return
 
 
-def calculate_rsi(prices, period=14):
+def calculate_rsi(prices: pd.Series, period: int = 14) -> float:
     """Calculate Relative Strength Index.
 
     Args:
@@ -108,7 +110,7 @@ def calculate_rsi(prices, period=14):
     return 100.0 - (100.0 / (1.0 + rs))
 
 
-def calculate_macd_histogram(prices, fast=12, slow=26, signal=9):
+def calculate_macd_histogram(prices: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> float:
     """Calculate MACD histogram value.
 
     Args:
@@ -130,7 +132,7 @@ def calculate_macd_histogram(prices, fast=12, slow=26, signal=9):
     return float(histogram.iloc[-1])
 
 
-def calculate_bollinger_width(prices, period=20, num_std=2):
+def calculate_bollinger_width(prices: pd.Series, period: int = 20, num_std: int = 2) -> float:
     """Calculate Bollinger Band width.
 
     Args:
@@ -153,7 +155,7 @@ def calculate_bollinger_width(prices, period=20, num_std=2):
     return float((upper - lower) / middle)
 
 
-def calculate_volume_trend(volumes, period=20):
+def calculate_volume_trend(volumes: pd.Series, period: int = 20) -> float:
     """Calculate volume trend as current volume / period-day average.
 
     Args:
@@ -171,7 +173,7 @@ def calculate_volume_trend(volumes, period=20):
     return float(volumes.iloc[-1] / avg_volume)
 
 
-def calculate_price_to_52wk_high(prices):
+def calculate_price_to_52wk_high(prices: pd.Series) -> float:
     """Calculate current price relative to 52-week high.
 
     Args:
@@ -188,7 +190,7 @@ def calculate_price_to_52wk_high(prices):
     return float(prices.iloc[-1] / high_52wk)
 
 
-def select_features(X, corr_threshold=0.95):
+def select_features(X: pd.DataFrame, corr_threshold: float = 0.95) -> tuple[pd.DataFrame, list[str]]:
     """Remove highly correlated features from a DataFrame.
 
     Iterates through the correlation matrix and drops one feature
@@ -202,9 +204,7 @@ def select_features(X, corr_threshold=0.95):
         Tuple of (filtered DataFrame, list of dropped column names).
     """
     corr_matrix = X.corr().abs()
-    upper = corr_matrix.where(
-        np.triu(np.ones(corr_matrix.shape), k=1).astype(bool)
-    )
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
     to_drop = []
     for col in upper.columns:
         if any(upper[col] > corr_threshold):
@@ -212,7 +212,7 @@ def select_features(X, corr_threshold=0.95):
     return X.drop(columns=to_drop), to_drop
 
 
-def validate_dataset(dataset):
+def validate_dataset(dataset: pd.DataFrame) -> dict[str, Any]:
     """Validate a processed dataset meets quality requirements.
 
     Args:
@@ -222,19 +222,21 @@ def validate_dataset(dataset):
         Dict with validation results.
     """
     results = {
-        'has_target': 'target_return' in dataset.columns,
-        'has_ticker': 'ticker' in dataset.columns,
-        'has_date': 'date' in dataset.columns,
-        'no_nan_target': not dataset['target_return'].isna().any() if 'target_return' in dataset.columns else False,
-        'sample_count': len(dataset),
-        'feature_count': len([c for c in dataset.columns if c not in ['ticker', 'date', 'sector', 'target_return']]),
-        'no_inf': not np.isinf(dataset.select_dtypes(include=[np.number])).any().any(),
+        "has_target": "target_return" in dataset.columns,
+        "has_ticker": "ticker" in dataset.columns,
+        "has_date": "date" in dataset.columns,
+        "no_nan_target": not dataset["target_return"].isna().any() if "target_return" in dataset.columns else False,
+        "sample_count": len(dataset),
+        "feature_count": len([c for c in dataset.columns if c not in ["ticker", "date", "sector", "target_return"]]),
+        "no_inf": not np.isinf(dataset.select_dtypes(include=[np.number])).any().any(),
     }
-    results['is_valid'] = all([
-        results['has_target'],
-        results['has_ticker'],
-        results['no_nan_target'],
-        results['sample_count'] > 0,
-        results['no_inf'],
-    ])
+    results["is_valid"] = all(
+        [
+            results["has_target"],
+            results["has_ticker"],
+            results["no_nan_target"],
+            results["sample_count"] > 0,
+            results["no_inf"],
+        ]
+    )
     return results

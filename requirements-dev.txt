@@ -1,2 +1,9 @@
 pytest
+pytest-cov
 flake8
+black
+isort
+mypy
+pandas-stubs
+pip-audit
+pre-commit
