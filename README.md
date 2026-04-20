@@ -200,6 +200,20 @@ The repo treats research code as production code. Every push runs a multi-job [G
 | **Tests & Coverage** | pytest, codecov | 110 unit tests on synthetic data, coverage uploaded to Codecov |
 | **Docker Build** | docker | Verify the [Dockerfile](Dockerfile) builds cleanly on every commit |
 
+### Testing Strategy
+
+The 110 tests aren't "happy path" smoke tests — they're designed as guardrails for an evolving ML pipeline:
+
+| Category | Examples | Why it matters |
+|---|---|---|
+| **Pure helpers** | `safe_divide`, `safe_loc`, `safe_growth` exercised against NaN, zero, negative bases, missing keys, empty DataFrames | Financial data is messy; defensive helpers are the foundation everything else builds on |
+| **Data contracts** | Shape and value ranges of every external source — yfinance OHLCV (DatetimeIndex, High ≥ Low, prices > 0), SEC EDGAR financial DataFrames, FRED indicator dict, Wikipedia GICS sector dict | Catches upstream API/format changes before bad data reaches the model |
+| **Cleaning pipeline** | End-to-end: winsorize → forward-fill → sector-median → `fillna(0)`. Verified against `sample_dirty_dataset` — a fixture built from real issues hit when scaling to 438 companies (45% NaN in `debt_to_equity`/`interest_coverage`, ROE outliers in the millions, negative debt-to-equity) | Pipeline correctness is verified against *observed* production data quality, not theoretical edge cases |
+| **Model & metrics** | XGBoost trains on synthetic data; predictions finite, importances sum to 1; direction-accuracy formula verified manually (4/5 = 0.8); RSI bounded [0,100] with overbought/oversold thresholds; sector z-scores have ≈0 mean within sector | Math correctness, not just "doesn't crash" |
+| **Inter-notebook contract** | `test_results_dict_structure` verifies notebook 03's saved `model_results.pkl` has the keys notebook 04 expects | Guards the Colab → local notebook handoff, a typically unmonitored gap in ML notebook projects |
+
+All fixtures are synthetic ([tests/conftest.py](tests/conftest.py)) — no real data files, no network calls, no API keys needed. The full suite completes in seconds, so every push is fully gated.
+
 Run the full local check before pushing:
 
 ```bash
@@ -210,8 +224,6 @@ flake8 src/ tests/ --max-line-length 120 --ignore E501,W503
 mypy src/ --ignore-missing-imports
 pytest tests/ -v --cov=src
 ```
-
-All 110 tests use synthetic data fixtures (see [tests/conftest.py](tests/conftest.py)) and run without any real data files — CI stays fast and deterministic.
 
 ## Tech Stack
 
