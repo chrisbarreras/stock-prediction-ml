@@ -1,10 +1,31 @@
 # Stock Return Prediction with XGBoost
 
+[![CI](https://github.com/Thomas-J-Barreras-Consulting/stock-prediction-ml/actions/workflows/ci.yml/badge.svg)](https://github.com/Thomas-J-Barreras-Consulting/stock-prediction-ml/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Thomas-J-Barreras-Consulting/stock-prediction-ml/branch/master/graph/badge.svg)](https://codecov.io/gh/Thomas-J-Barreras-Consulting/stock-prediction-ml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Predicting quarterly S&P 500 stock returns using financial fundamentals, technical indicators, and macroeconomic data.
+
+![Model Results](results/model_results.png)
 
 ## Overview
 
 This project builds an XGBoost regression model to predict next-quarter excess stock returns (vs S&P 500 benchmark) based on features derived from real SEC EDGAR filings, technical price indicators, FRED macroeconomic data, and sector-relative metrics. The model is trained on ~436 S&P 500 companies using quarterly data from 2005-2026, with a temporal train/test split to prevent data leakage. Hyperparameters are tuned via Optuna Bayesian optimization with expanding-window time-series cross-validation.
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    A[yfinance<br/>prices] --> F[Feature<br/>Engineering]
+    B[SEC EDGAR<br/>XBRL filings] --> F
+    C[FRED<br/>macro data] --> F
+    D[Wikipedia<br/>GICS sectors] --> F
+    E[Fama-French<br/>factors] --> F
+    F --> G[Optuna +<br/>Time-Series CV]
+    G --> H[XGBoost<br/>model]
+    H --> I[Direction accuracy<br/>R2 / overfit ratio]
+```
 
 ## Results
 
@@ -16,6 +37,8 @@ This project builds an XGBoost regression model to predict next-quarter excess s
 | Features | 15 (after automated selection) |
 | Trees | 145 (early stopping) |
 | Dataset | ~10,700 samples, ~436 companies |
+
+![Prediction Analysis](results/prediction_analysis.png)
 
 ## Features
 
@@ -48,6 +71,7 @@ stock-prediction-ml/
 │   ├── download_spy.py                  # SPY benchmark prices via yfinance
 │   ├── download_sectors.py              # Sector classifications from Wikipedia
 │   ├── download_macro.py                # FRED macroeconomic indicators
+│   ├── download_ff_factors.py           # Fama-French 5 factors + momentum
 │   └── extract_financials.py            # Parse SEC EDGAR quarterly filings
 ├── notebooks/
 │   ├── 01_data_collection.ipynb         # Run all data collection scripts
@@ -79,6 +103,7 @@ stock-prediction-ml/
 - **Financial Statements**: [SEC EDGAR](https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip) - Real quarterly filings (10-Q) parsed from XBRL
 - **Benchmark Prices**: [Yahoo Finance](https://finance.yahoo.com/) via yfinance - S&P 500 (SPY) daily prices for excess return calculation
 - **Macroeconomic Data**: [FRED](https://fred.stlouisfed.org/) - 10yr Treasury, VIX, unemployment, GDP, CPI
+- **Fama-French Factors**: [Kenneth French Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) - FF5 factors (SMB, HML, RMW, CMA) plus momentum (MOM)
 - **Sector Classifications**: [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies) - GICS sector and sub-industry
 
 ## Methodology
@@ -87,45 +112,66 @@ stock-prediction-ml/
 
 2. **Feature Engineering** - Computed features including profitability ratios, growth metrics, leverage ratios, efficiency metrics, valuation multiples, technical indicators (RSI, MACD, Bollinger Bands, momentum, volatility), macroeconomic context, sector-relative z-scores, and feature interactions. Target is excess return (stock return minus S&P 500 return).
 
+   ![Correlation Heatmap](results/correlation_heatmap.png)
+
 3. **Feature Selection** - Automated pipeline removes zero-variance features, highly correlated features (>0.95 threshold), and features with weak target correlation (<0.03 threshold).
+
+   ![Feature Importance](results/feature_importance.png)
 
 4. **Model Training** - Temporal train/test split ensures the model is only evaluated on future data. Expanding-window time-series cross-validation with 5 folds. Hyperparameter tuning via Optuna Bayesian optimization (150 trials) with early stopping. Huber loss objective for robustness to outliers.
 
 5. **Analysis** - Evaluated using RMSE, R2, MAE, overfit ratio, Spearman rank correlation, and directional accuracy. Includes Optuna-tuned binary classifier for direction prediction.
 
-## Setup
+## Reproducing Results
+
+End-to-end runbook from a clean checkout.
+
+### Prerequisites
+
+- **Python 3.12+**
+- **FRED API key** — free at [fred.stlouisfed.org](https://fred.stlouisfed.org/). Save as `FRED_API_KEY=...` in a `.env` file at the project root.
+- **SEC EDGAR bulk data** — download [companyfacts.zip](https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip) and extract into `data/raw/kaggle/sec_edgar/`.
+- **Google Colab account** with GPU runtime (for notebook 03 only).
+
+> **Note**: `data/` and `models/` artifacts are not checked into git. Each step below must be re-run per machine.
+
+### 1. Environment setup (~2 min)
 
 ```bash
-# Clone repository
-git clone https://github.com/chrisbarreras/stock-prediction-ml.git
+git clone https://github.com/Thomas-J-Barreras-Consulting/stock-prediction-ml.git
 cd stock-prediction-ml
 
-# Create virtual environment
 python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate            # Windows
+# source venv/bin/activate       # macOS/Linux
 
-# Install dependencies
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
 ```
 
-### Data Collection
+### 2. Data collection (~10–15 min)
 
-A FRED API key is required for macro data (free at https://fred.stlouisfed.org/). SEC EDGAR bulk data must be downloaded separately ([companyfacts.zip](https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip)).
-
-Run notebook 01 to execute all data collection scripts, or run them individually:
+Run [notebook 01](notebooks/01_data_collection.ipynb) top-to-bottom, or invoke the scripts individually:
 
 ```bash
-python scripts/download_prices.py       # S&P 500 prices via yfinance (~5 min)
-python scripts/download_spy.py          # SPY benchmark prices
-python scripts/download_sectors.py      # Sector classifications from Wikipedia
-python scripts/download_macro.py        # FRED macro data (requires FRED_API_KEY in .env)
-python scripts/extract_financials.py    # Parse SEC EDGAR quarterly filings
+python scripts/download_prices.py       # S&P 500 daily OHLCV    -> data/price_data.pkl
+python scripts/download_spy.py          # SPY benchmark prices   -> data/spy_data.pkl
+python scripts/download_sectors.py      # GICS sectors           -> data/sector_data.pkl
+python scripts/download_macro.py        # FRED indicators        -> data/macro_data.pkl
+python scripts/download_ff_factors.py   # Fama-French factors    -> data/ff_factors.pkl
+python scripts/extract_financials.py    # SEC EDGAR XBRL filings -> data/financial_data.pkl
 ```
 
-### Model Pipeline
+### 3. Feature engineering (~3 min, local)
 
-Run notebook 02 (feature engineering) locally, notebook 03 (model training) on Google Colab with GPU, and notebook 04 (analysis) locally.
+Run [notebook 02](notebooks/02_feature_engineering.ipynb) top-to-bottom. Produces `data/processed_dataset.csv` (~10,700 quarterly samples × ~50 features).
+
+### 4. Model training (~30–60 min, Google Colab with GPU)
+
+Upload [notebook 03](notebooks/03_model_training.ipynb) to Google Colab, switch the runtime to GPU, and run all cells. Saves `models/model_results.pkl` containing the trained XGBoost model, predictions, and metrics.
+
+### 5. Analysis (~2 min, local)
+
+Run [notebook 04](notebooks/04_analysis.ipynb) to regenerate the charts in [results/](results/) and evaluate direction accuracy, R², overfit ratio, and feature importances.
 
 ## Limitations
 
@@ -141,24 +187,35 @@ Run notebook 02 (feature engineering) locally, notebook 03 (model training) on G
 - Ensemble methods combining multiple model architectures
 - Shorter prediction horizons (monthly) for more training samples
 
-## Testing
+## Engineering & MLOps
 
-110 automated tests covering feature engineering, data validation, and model output structure. All tests use synthetic data and run without real data files.
+The repo treats research code as production code. Every push runs a multi-job [GitHub Actions pipeline](.github/workflows/ci.yml):
+
+| Job | Tools | Purpose |
+|---|---|---|
+| **Lint & Type Check** | black, isort, flake8, mypy | Enforce formatting (line length 120), import order, style, and static types |
+| **Security Audit** | pip-audit | Scan dependencies for known CVEs (`--strict`) |
+| **Tests & Coverage** | pytest, codecov | 110 unit tests on synthetic data, coverage uploaded to Codecov |
+| **Docker Build** | docker | Verify the [Dockerfile](Dockerfile) builds cleanly on every commit |
+
+Run the full local check before pushing:
 
 ```bash
 pip install -r requirements-dev.txt
-pytest
+black --check --line-length 120 src/ tests/ scripts/
+isort --check-only --profile black --line-length 120 src/ tests/ scripts/
+flake8 src/ tests/ --max-line-length 120 --ignore E501,W503
+mypy src/ --ignore-missing-imports
+pytest tests/ -v --cov=src
 ```
 
-CI runs automatically on push/PR via GitHub Actions.
+All 110 tests use synthetic data fixtures (see [tests/conftest.py](tests/conftest.py)) and run without any real data files — CI stays fast and deterministic.
 
 ## Tech Stack
 
-- Python 3.13
-- XGBoost, Optuna, scikit-learn, scipy
-- yfinance, fredapi
-- pandas, NumPy
-- matplotlib, seaborn
-- pytest, flake8
-- GitHub Actions (CI)
-- Google Colab (model training)
+- **Language**: Python 3.12+
+- **ML**: XGBoost, Optuna, scikit-learn, scipy
+- **Data**: pandas, NumPy, yfinance, fredapi
+- **Visualization**: matplotlib, seaborn
+- **Quality**: pytest, black, isort, flake8, mypy, pip-audit
+- **Infra**: GitHub Actions (CI), Docker, Google Colab (GPU training), Codecov
