@@ -31,10 +31,7 @@ SEC_DIR = os.path.join(DATA_DIR, "raw", "kaggle", "sec_edgar")
 FACTS_DIR = os.path.join(SEC_DIR, "companyfacts")
 ZIP_URL = "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip"
 
-DEFAULT_UA = (
-    "stock-prediction-ml research "
-    "(+https://github.com/Thomas-J-Barreras-Consulting/stock-prediction-ml)"
-)
+DEFAULT_UA = "stock-prediction-ml research " "(+https://github.com/Thomas-J-Barreras-Consulting/stock-prediction-ml)"
 USER_AGENT = os.getenv("SEC_USER_AGENT", DEFAULT_UA)
 
 
