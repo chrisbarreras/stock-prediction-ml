@@ -7,7 +7,7 @@
 
 Predicting quarterly S&P 500 stock returns using financial fundamentals, technical indicators, and macroeconomic data.
 
-![Model Results](results/model_results.png)
+![Prediction Analysis](results/prediction_analysis.png)
 
 ## Overview
 
@@ -37,8 +37,6 @@ flowchart LR
 | Features | 21 (after automated selection) |
 | Trees | 51 (Optuna-selected) |
 | Dataset | ~12,150 samples, 488 companies |
-
-![Prediction Analysis](results/prediction_analysis.png)
 
 ## Features
 
@@ -151,7 +149,7 @@ venv\Scripts\activate            # Windows
 pip install -r requirements.txt -r requirements-dev.txt
 ```
 
-### 2. Data collection (~10–15 min)
+### 2. Data collection (~20–25 min)
 
 Run [notebook 01](notebooks/01_data_collection.ipynb) top-to-bottom, or invoke the scripts individually:
 
@@ -165,11 +163,11 @@ python scripts/download_sec_edgar.py    # SEC EDGAR bulk dump    -> data/raw/kag
 python scripts/extract_financials.py    # SEC EDGAR XBRL filings -> data/financial_data.pkl
 ```
 
-### 3. Feature engineering (~3 min, local)
+### 3. Feature engineering (~1-3 min, local)
 
 Run [notebook 02](notebooks/02_feature_engineering.ipynb) top-to-bottom. Produces `data/processed_dataset.csv` (~12,150 quarterly samples × ~50 features).
 
-### 4. Model training (~30–60 min)
+### 4. Model training (~1-30 min)
 
 Notebook 03 auto-detects whether it's running in Colab or locally and resolves data/model paths accordingly:
 
@@ -178,7 +176,7 @@ Notebook 03 auto-detects whether it's running in Colab or locally and resolves d
 
 Note: training currently runs on **CPU** (no `tree_method='gpu_hist'` set). With ~10k samples × 23 features × 150 Optuna trials, CPU is competitive — GPU overhead would likely make it slower at this scale.
 
-### 5. Analysis (~2 min, local)
+### 5. Analysis (~1-2 min, local)
 
 Run [notebook 04](notebooks/04_analysis.ipynb) to regenerate the charts in [results/](results/) and evaluate direction accuracy, R², overfit ratio, and feature importances.
 
