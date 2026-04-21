@@ -72,6 +72,7 @@ stock-prediction-ml/
 │   ├── download_sectors.py              # Sector classifications from Wikipedia
 │   ├── download_macro.py                # FRED macroeconomic indicators
 │   ├── download_ff_factors.py           # Fama-French 5 factors + momentum
+│   ├── download_sec_edgar.py            # SEC EDGAR bulk XBRL data (~1.5 GB compressed)
 │   └── extract_financials.py            # Parse SEC EDGAR quarterly filings
 ├── notebooks/
 │   ├── 01_data_collection.ipynb         # Run all data collection scripts
@@ -132,7 +133,7 @@ End-to-end runbook from a clean checkout.
 
 - **Python 3.12+**
 - **FRED API key** — free at [fred.stlouisfed.org](https://fred.stlouisfed.org/). Save as `FRED_API_KEY=...` in a `.env` file at the project root.
-- **SEC EDGAR bulk data** — download [companyfacts.zip](https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip) and extract into `data/raw/kaggle/sec_edgar/`.
+- **SEC EDGAR bulk data** — fetched automatically by `scripts/download_sec_edgar.py` (~1.5 GB compressed, ~15 GB extracted, ~13,000 JSON files). Optionally set `SEC_USER_AGENT="Your Name your@email.com"` to identify SEC requests with your contact info; otherwise a generic project-repo identifier is used.
 - **Google Colab account** with GPU runtime (for notebook 03 only).
 
 > **Note**: `data/` and `models/` artifacts are not checked into git. Each step below must be re-run per machine.
@@ -160,6 +161,7 @@ python scripts/download_spy.py          # SPY benchmark prices   -> data/spy_dat
 python scripts/download_sectors.py      # GICS sectors           -> data/sector_data.pkl
 python scripts/download_macro.py        # FRED indicators        -> data/macro_data.pkl
 python scripts/download_ff_factors.py   # Fama-French factors    -> data/ff_factors.pkl
+python scripts/download_sec_edgar.py    # SEC EDGAR bulk dump    -> data/raw/kaggle/sec_edgar/companyfacts/
 python scripts/extract_financials.py    # SEC EDGAR XBRL filings -> data/financial_data.pkl
 ```
 
