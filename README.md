@@ -7,7 +7,7 @@
 
 Predicting quarterly S&P 500 stock returns using financial fundamentals, technical indicators, and macroeconomic data.
 
-![Model Results](results/model_results.png)
+![Prediction Analysis](results/prediction_analysis.png)
 
 ## Overview
 
@@ -37,8 +37,6 @@ flowchart LR
 | Features | 21 (after automated selection) |
 | Trees | 51 (Optuna-selected) |
 | Dataset | ~12,150 samples, 488 companies |
-
-![Prediction Analysis](results/prediction_analysis.png)
 
 ## Features
 
