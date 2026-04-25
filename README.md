@@ -7,7 +7,7 @@
 
 Predicting quarterly S&P 500 stock returns using financial fundamentals, technical indicators, and macroeconomic data.
 
-![Prediction Analysis](results/prediction_analysis.png)
+![Portfolio Strategy Performance vs. Buy & Hold](results/prediction_analysis.png)
 
 ## Overview
 
@@ -119,9 +119,11 @@ stock-prediction-ml/
 
 4. **Model Training** - Temporal train/test split ensures the model is only evaluated on future data. Expanding-window time-series cross-validation with 5 folds. Hyperparameter tuning via Optuna Bayesian optimization (150 trials), with `n_estimators` tuned directly by Optuna rather than early stopping (more reliable on noisy financial data). Huber loss objective for robustness to outliers.
 
-5. **Prediction Calibration** - Huber loss with heavy regularization makes the regressor very conservative; raw predictions cluster tightly near zero (std ≈ 0.004 vs actual return std ≈ 0.14), so noise pushes most predictions to the wrong side of the zero line and direction accuracy collapses to 43% (worse than random). A variance-matching affine transform — `(pred - pred_mean) × (train_std / pred_std) + train_mean` — rescales predictions to match the training-set distribution. This preserves rank order (Spearman correlation unchanged) but unsquashes magnitudes across the zero line, lifting direction accuracy from 43% → 53%. The tradeoff is that R² gets *more* negative (squared errors grow with prediction magnitude); this is the headline tradeoff visualized in the model results chart at the top of this README.
+5. **Prediction Calibration** - Huber loss with heavy regularization makes the regressor very conservative; raw predictions cluster tightly near zero (std ≈ 0.004 vs actual return std ≈ 0.14), so noise pushes most predictions to the wrong side of the zero line and direction accuracy collapses to 43% (worse than random). A variance-matching affine transform — `(pred - pred_mean) × (train_std / pred_std) + train_mean` — rescales predictions to match the training-set distribution. This preserves rank order (Spearman correlation unchanged) but unsquashes magnitudes across the zero line, lifting direction accuracy from 43% → 53%. The tradeoff is that R² gets *more* negative (squared errors grow with prediction magnitude).
 
-6. **Analysis** - Evaluated using RMSE, R2, MAE, overfit ratio, Spearman rank correlation, and directional accuracy. Includes Optuna-tuned logistic regression classifier for direction prediction.
+   ![Calibration Diagnostics](results/calibration_diagnostics.png)
+
+6. **Analysis** - Evaluated using RMSE, R2, MAE, overfit ratio, Spearman rank correlation, and directional accuracy. Includes Optuna-tuned logistic regression classifier for direction prediction. The hero chart at the top of this README converts the model's rank ordering into investable performance: it plots SPY benchmark vs three conviction tiers (all predicted-outperform names, top quartile, top decile, all selected within each quarter to avoid lookahead bias).
 
 ## Reproducing Results
 
