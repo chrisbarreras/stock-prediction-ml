@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" remote -v)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" status)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" diff README.md)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" log --oneline -10)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" add README.md)",
+      "Bash(git -C d:/projects/stock-prediction-ml-tjb/stock-prediction-ml commit -m ' *)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" push origin master)",
+      "Bash(grep -nE \"r2_score|R\\\\\\\\^2|R²|R2[:=]\" \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml/notebooks/04_analysis.ipynb\")",
+      "Bash(python -c ' *)",
+      "Bash(python)",
+      "Bash(python \"d:/tmp/fix_calibration_comment.py\")",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" diff --stat)",
+      "Bash(python \"d:/tmp/fix_cumulative_returns.py\")",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" diff notebooks/04_analysis.ipynb)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" add notebooks/04_analysis.ipynb)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" check-ignore -v .env)",
+      "Bash(python \"d:/tmp/edit_notebook_01.py\")",
+      "Bash(rm \"d:/tmp/edit_notebook_01.py\")",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" diff --stat HEAD)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" diff notebooks/01_data_collection.ipynb)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" add scripts/download_sec_edgar.py notebooks/01_data_collection.ipynb README.md)",
+      "Bash(python \"d:/tmp/edit_notebook_03.py\")",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" add notebooks/03_model_training.ipynb README.md)",
+      "Bash(python \"d:/tmp/fix_savefig_paths.py\")",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" diff notebooks/03_model_training.ipynb)",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" add notebooks/03_model_training.ipynb)",
+      "Bash(python \"d:/tmp/bump_threshold.py\")",
+      "Bash(python \"d:/tmp/fix_threshold_comment.py\")",
+      "Bash(git -C \"d:/projects/stock-prediction-ml-tjb/stock-prediction-ml\" add README.md notebooks/02_feature_engineering.ipynb results/correlation_heatmap.png results/data_exploration.png results/feature_importance.png results/feature_importance_analysis.png results/model_results.png results/prediction_analysis.png)"
+    ]
+  }
+}
