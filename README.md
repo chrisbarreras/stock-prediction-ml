@@ -200,6 +200,18 @@ Run [notebook 04](notebooks/04_analysis.ipynb) to regenerate the charts in [resu
 
 The repo treats research code as production code. Every push runs a multi-job [GitHub Actions pipeline](.github/workflows/ci.yml):
 
+```mermaid
+flowchart LR
+    A[Push or PR<br/>to master] --> B[Lint &amp; Types<br/>black, isort,<br/>flake8, mypy]
+    A --> C[Security Audit<br/>pip-audit]
+    A --> D[Tests &amp; Coverage<br/>pytest, codecov]
+    A --> E[Docker Build]
+    B --> F[CI Status<br/>all jobs required]
+    C --> F
+    D --> F
+    E --> F
+```
+
 | Job | Tools | Purpose |
 |---|---|---|
 | **Lint & Type Check** | black, isort, flake8, mypy | Enforce formatting (line length 120), import order, style, and static types |
