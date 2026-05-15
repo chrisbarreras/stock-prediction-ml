@@ -5,6 +5,7 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -60,7 +61,8 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Dependency vulnerability scan
-        run: pip-audit --strict
+        # CVE-2026-3219 affects pip itself with no upstream fix yet; revisit once patched.
+        run: pip-audit --strict --ignore-vuln CVE-2026-3219
 
   test:
     name: Tests & Coverage
